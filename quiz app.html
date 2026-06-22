@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4択クイズ</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #111;
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== 設定画面 ===== */
+#setup-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+#setup-inner {
+  width: 100%;
+  max-width: 580px;
+  padding: 28px 20px;
+  color: #fff;
+}
+#setup-inner h1 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #7ecef4;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+}
+.fg { margin-bottom: 14px; }
+.fg label { display: block; font-size: 11px; color: #aaa; margin-bottom: 5px; }
+.fg input, .fg select, .fg textarea {
+  width: 100%; background: #222; border: 1px solid #444; border-radius: 6px;
+  color: #fff; padding: 9px 11px; font-size: 14px; font-family: inherit; outline: none;
+}
+.fg textarea { resize: none; height: 56px; }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.ci label { font-size: 11px; color: #888; margin-bottom: 3px; display: block; }
+.ci input { width: 100%; background: #1a1a1a; border: 1px solid #333; border-radius: 5px; color: #fff; padding: 6px 8px; font-size: 13px; font-family: inherit; outline: none; text-align: center; }
+#start-btn {
+  width: 100%; padding: 13px; background: linear-gradient(135deg, #1a6fc4, #0d4a8f);
+  border: none; border-radius: 8px; color: #fff; font-size: 15px; font-weight: bold;
+  font-family: inherit; cursor: pointer; letter-spacing: 0.1em;
+}
+.hint { font-size: 11px; color: #555; margin-top: 8px; text-align: center; }
+
+/* ===== クイズ画面 ===== */
+#quiz-screen {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: #000;
+  overflow: hidden;
+}
+
+/* 1333x750の仮想キャンバス */
+#qc {
+  position: absolute;
+  width: 1333px;
+  height: 750px;
+  transform-origin: top left;
+}
+
+/* 背景 */
+#bg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1333px; height: 750px;
+}
+
+/* 問題文パネル（縦長の青パネル）*/
+#q-panel-img {
+  position: absolute;
+  left: 60px; top: 0;
+  width: 180px; height: 530px;
+  object-fit: fill;
+  z-index: 2;
+}
+
+/* 問題文テキスト（縦書き） */
+#q-text {
+  position: absolute;
+  left: 75px; top: 30px;
+  width: 150px; height: 480px;
+  z-index: 10;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  color: #0F0E75;
+  font-size: 20px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* 企画名パネル（正解者バッジ）*/
+#proj-img {
+  position: absolute;
+  left: 70px; top: 350px;
+  width: 140px; height: 175px;
+  object-fit: contain;
+  z-index: 3;
+}
+#proj-text {
+  position: absolute;
+  left: 75px; top: 400px;
+  width: 140px; height: 110px;
+  z-index: 11;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* メインパネル（白い問題エリア）*/
+#main-panel {
+  position: absolute;
+  left: 234px; top: 77px;
+  width: 875px; height: 400px;
+  background: rgba(255,255,255,0.92);
+  border-radius: 14px;
+  z-index: 2;
+}
+/* ①②の番号丸 */
+.top-num {
+  position: absolute;
+  width: 49px; height: 49px;
+  object-fit: contain;
+  z-index: 5;
+}
+#tn1 { left: 242px; top: 85px; }
+#tn2 { left: 680px; top: 85px; }
+#tn3 { left: 242px; top: 320px; }
+#tn4 { left: 680px; top: 320px; }
+
+/* カウントダウン動画 */
+#cd-wrap {
+  position: absolute;
+  right: 10px; bottom: 10px;
+  width: 145px; height: 130px;
+  z-index: 20;
+}
+#cd-video {
+  width: 100%; height: 100%;
+  object-fit: contain;
+}
+
+/* 選択肢パネル共通 */
+.cp {
+  position: absolute;
+  height: 96px;
+  overflow: hidden;
+  z-index: 5;
+  transition: filter 0.5s;
+}
+#cp1 { left: 234px; top: 504px; width: 431px; }
+#cp2 { left: 671px; top: 504px; width: 431px; }
+#cp3 { left: 234px; top: 608px; width: 431px; }
+#cp4 { left: 671px; top: 608px; width: 431px; }
+
+.cp-bg { position: absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; }
+.cp-bg-a { position: absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; opacity:0; }
+.cp-bg-b { position: absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; opacity:0; }
+
+.cp-num {
+  position: absolute;
+  left: 8px; top: 50%;
+  transform: translateY(-50%);
+  width: 57px; height: 57px;
+  object-fit: contain;
+  z-index: 6;
+}
+.cp-txt {
+  position: absolute;
+  left: 72px; top: 0;
+  width: 250px; height: 100%;
+  display: flex; align-items: center;
+  color: #00005D;
+  font-size: 20px; font-weight: bold;
+  line-height: 1.2;
+  z-index: 6;
+}
+.cp-txt-c {
+  position: absolute;
+  left: 72px; top: 0;
+  width: 250px; height: 100%;
+  display: flex; align-items: center;
+  color: #fff;
+  font-size: 20px; font-weight: bold;
+  line-height: 1.2;
+  z-index: 7;
+  opacity: 0;
+}
+/* 投票数 */
+.cp-vc {
+  position: absolute;
+  right: 4px; top: 50%;
+  transform: translateY(-50%);
+  width: 101px; height: 65px;
+  z-index: 7;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.cp-vc img { width: 100%; height: 100%; object-fit: fill; position: absolute; top:0; left:0; }
+.cp-vc span {
+  position: absolute; top:0; left:0;
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 20px; font-weight: bold;
+}
+/* 正解マーク */
+.cp-mark {
+  position: absolute;
+  right: 110px; top: 50%;
+  transform: translateY(-50%);
+  width: 57px; height: 57px;
+  object-fit: contain;
+  z-index: 8;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* 戻るボタン */
+#back-btn {
+  position: fixed;
+  bottom: 10px; right: 10px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid #555;
+  color: #aaa; font-size: 12px;
+  padding: 6px 12px; border-radius: 4px;
+  cursor: pointer; z-index: 100;
+  font-family: inherit;
+}
+</style>
+</head>
+<body>
+
+<!-- 設定画面 -->
+<div id="setup-screen">
+  <div id="setup-inner">
+    <h1>🎯 4択クイズ設定</h1>
+
+    <div class="fg">
+      <label>企画名</label>
+      <input type="text" id="s-proj" value="クイズ企画" maxlength="20">
+    </div>
+
+    <div class="fg">
+      <label>問題文</label>
+      <textarea id="s-q" placeholder="問題文を入力">日本の首都は？</textarea>
+    </div>
+
+    <p style="font-size:11px;color:#888;margin-bottom:6px;">選択肢</p>
+    <div class="g2">
+      <div class="ci"><label>① </label><input type="text" id="s-c1" value="東京"></div>
+      <div class="ci"><label>② </label><input type="text" id="s-c2" value="大阪"></div>
+      <div class="ci"><label>③ </label><input type="text" id="s-c3" value="京都"></div>
+      <div class="ci"><label>④ </label><input type="text" id="s-c4" value="名古屋"></div>
+    </div>
+
+    <p style="font-size:11px;color:#888;margin-bottom:6px;">投票数（0で非表示）</p>
+    <div class="g4">
+      <div class="ci"><label>①</label><input type="number" id="s-v1" value="0" min="0"></div>
+      <div class="ci"><label>②</label><input type="number" id="s-v2" value="0" min="0"></div>
+      <div class="ci"><label>③</label><input type="number" id="s-v3" value="0" min="0"></div>
+      <div class="ci"><label>④</label><input type="number" id="s-v4" value="0" min="0"></div>
+    </div>
+
+    <div class="g2">
+      <div class="fg" style="margin:0">
+        <label>正解番号</label>
+        <select id="s-ans">
+          <option value="1">① 番</option>
+          <option value="2">② 番</option>
+          <option value="3">③ 番</option>
+          <option value="4">④ 番</option>
+        </select>
+      </div>
+      <div class="fg" style="margin:0">
+        <label>カウントダウン</label>
+        <select id="s-cd">
+          <option value="5">5秒</option>
+          <option value="10" selected>10秒</option>
+          <option value="15">15秒</option>
+          <option value="20">20秒</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:8px;">
+      <button id="start-btn">▶ クイズ開始</button>
+      <p class="hint">全画面(F11) + 画面録画 → 動画化できます</p>
+    </div>
+  </div>
+</div>
+
+<!-- クイズ画面 -->
+<div id="quiz-screen">
+  <div id="qc">
+
+    <!-- 背景 -->
+    <img id="bg" src="img5.png">
+
+    <!-- 問題文パネル（縦長青パネル） -->
+    <img id="q-panel-img" src="img13.png">
+
+    <!-- 問題文（縦書き） -->
+    <div id="q-text"></div>
+
+    <!-- 企画名（正解者バッジ） -->
+    <img id="proj-img" src="img18.png">
+    <div id="proj-text"></div>
+
+    <!-- メイン白パネル -->
+    <div id="main-panel">
+      <!-- 縦区切り線 -->
+      <div style="position:absolute;left:50%;top:0;width:2px;height:100%;background:rgba(180,180,200,0.35);"></div>
+    </div>
+
+    <!-- 番号丸（①②③④） -->
+    <img class="top-num" id="tn1" src="img4.png">
+    <img class="top-num" id="tn2" src="img3.png">
+    <img class="top-num" id="tn3" src="img2.png">
+    <img class="top-num" id="tn4" src="img1.png">
+
+    <!-- カウントダウン -->
+    <div id="cd-wrap">
+      <video id="cd-video" playsinline muted></video>
+    </div>
+
+    <!-- 選択肢① -->
+    <div class="cp" id="cp1">
+      <img class="cp-bg" src="img6.png">
+      <img class="cp-bg-a" id="ca1" src="img7.png">
+      <img class="cp-bg-b" id="cb1" src="img6.png">
+      <img class="cp-num" src="img4.png">
+      <div class="cp-txt" id="ct1"></div>
+      <div class="cp-txt-c" id="cc1"></div>
+      <div class="cp-vc" id="vc1"><img src="img8.png"><span id="vt1"></span></div>
+      <img class="cp-mark" id="cm1" src="img11.png">
+    </div>
+
+    <!-- 選択肢② -->
+    <div class="cp" id="cp2">
+      <img class="cp-bg" src="img6.png">
+      <img class="cp-bg-a" id="ca2" src="img7.png">
+      <img class="cp-bg-b" id="cb2" src="img6.png">
+      <img class="cp-num" src="img3.png">
+      <div class="cp-txt" id="ct2"></div>
+      <div class="cp-txt-c" id="cc2"></div>
+      <div class="cp-vc" id="vc2"><img src="img8.png"><span id="vt2"></span></div>
+      <img class="cp-mark" id="cm2" src="img10.png">
+    </div>
+
+    <!-- 選択肢③ -->
+    <div class="cp" id="cp3">
+      <img class="cp-bg" src="img6.png">
+      <img class="cp-bg-a" id="ca3" src="img7.png">
+      <img class="cp-bg-b" id="cb3" src="img6.png">
+      <img class="cp-num" src="img2.png">
+      <div class="cp-txt" id="ct3"></div>
+      <div class="cp-txt-c" id="cc3"></div>
+      <div class="cp-vc" id="vc3"><img src="img8.png"><span id="vt3"></span></div>
+      <img class="cp-mark" id="cm3" src="img9.png">
+    </div>
+
+    <!-- 選択肢④ -->
+    <div class="cp" id="cp4">
+      <img class="cp-bg" src="img6.png">
+      <img class="cp-bg-a" id="ca4" src="img7.png">
+      <img class="cp-bg-b" id="cb4" src="img6.png">
+      <img class="cp-num" src="img1.png">
+      <div class="cp-txt" id="ct4"></div>
+      <div class="cp-txt-c" id="cc4"></div>
+      <div class="cp-vc" id="vc4"><img src="img8.png"><span id="vt4"></span></div>
+      <img class="cp-mark" id="cm4" src="img8.png">
+    </div>
+
+  </div><!-- /qc -->
+
+  <button id="back-btn">← 設定に戻る</button>
+</div>
+
+<script>
+// 動画ファイルと実尺(ms)
+const CD = {
+  5:  { file: 'cd8.mp4', ms: 9032 },
+  10: { file: 'cd7.mp4', ms: 14047 },
+  15: { file: 'cd6.mp4', ms: 19063 },
+  20: { file: 'cd5.mp4', ms: 24055 },
+};
+
+let timers = [];
+let blinkTid = null;
+
+function sched(ms, fn) { timers.push(setTimeout(fn, ms)); }
+function clearAll() {
+  timers.forEach(clearTimeout); timers = [];
+  if (blinkTid) { clearInterval(blinkTid); blinkTid = null; }
+}
+
+// スケーリング（1333x750を画面に収める）
+function resize() {
+  const qc = document.getElementById('qc');
+  const sx = window.innerWidth / 1333;
+  const sy = window.innerHeight / 750;
+  const s = Math.min(sx, sy);
+  const ox = (window.innerWidth  - 1333 * s) / 2;
+  const oy = (window.innerHeight - 750  * s) / 2;
+  qc.style.transform = `translate(${ox}px, ${oy}px) scale(${s})`;
+}
+window.addEventListener('resize', resize);
+
+// 点滅
+function blink(n) {
+  const a = document.getElementById('ca' + n);
+  const b = document.getElementById('cb' + n);
+  let ph = 0;
+  const tick = () => {
+    if (ph % 2 === 0) { a.style.opacity = '1'; b.style.opacity = '0'; }
+    else              { a.style.opacity = '0'; b.style.opacity = '1'; }
+    ph++;
+  };
+  tick();
+  blinkTid = setInterval(tick, 300);
+  // 6サイクル後にA固定
+  setTimeout(() => {
+    clearInterval(blinkTid); blinkTid = null;
+    a.style.opacity = '1'; b.style.opacity = '0';
+  }, 300 * 6 + 150);
+}
+
+// リセット
+function resetUI() {
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('cp' + i).style.filter = '';
+    document.getElementById('ca' + i).style.opacity = '0';
+    document.getElementById('cb' + i).style.opacity = '0';
+    document.getElementById('cc' + i).style.opacity = '0';
+    document.getElementById('ct' + i).style.opacity = '1';
+    document.getElementById('vc' + i).style.opacity = '0';
+    document.getElementById('cm' + i).style.opacity = '0';
+  }
+}
+
+// メイン
+function runQuiz(cfg) {
+  clearAll();
+  resetUI();
+
+  const correct = parseInt(cfg.ans);
+  const cdSec   = parseInt(cfg.cd);
+  const cdMs    = CD[cdSec].ms;
+
+  // テキスト設定
+  document.getElementById('q-text').textContent   = cfg.q;
+  document.getElementById('proj-text').textContent = cfg.proj;
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('ct' + i).textContent = cfg['c' + i];
+    document.getElementById('cc' + i).textContent = cfg['c' + i];
+    document.getElementById('vt' + i).textContent = cfg['v' + i];
+  }
+
+  // カウントダウン動画
+  const vid = document.getElementById('cd-video');
+  vid.src = CD[cdSec].file;
+  vid.load();
+  vid.play().catch(() => {});
+
+  // 動画終了後に正解演出
+  sched(cdMs, () => {
+    // 不正解暗転
+    for (let i = 1; i <= 4; i++) {
+      if (i !== correct) {
+        document.getElementById('cp' + i).style.filter = 'brightness(0.3) saturate(0.2)';
+      }
+    }
+    // 正解点滅
+    blink(correct);
+    // 正解テキスト白に
+    document.getElementById('ct' + correct).style.opacity = '0';
+    document.getElementById('cc' + correct).style.opacity = '1';
+    // 正解マーク
+    sched(300, () => {
+      document.getElementById('cm' + correct).style.opacity = '1';
+    });
+    // 投票数
+    sched(600, () => {
+      for (let i = 1; i <= 4; i++) {
+        if (parseInt(cfg['v' + i]) > 0) {
+          document.getElementById('vc' + i).style.opacity = '1';
+        }
+      }
+    });
+  });
+}
+
+// 開始ボタン
+document.getElementById('start-btn').addEventListener('click', () => {
+  const cfg = {
+    proj: document.getElementById('s-proj').value,
+    q:    document.getElementById('s-q').value,
+    c1:   document.getElementById('s-c1').value,
+    c2:   document.getElementById('s-c2').value,
+    c3:   document.getElementById('s-c3').value,
+    c4:   document.getElementById('s-c4').value,
+    v1:   document.getElementById('s-v1').value,
+    v2:   document.getElementById('s-v2').value,
+    v3:   document.getElementById('s-v3').value,
+    v4:   document.getElementById('s-v4').value,
+    ans:  document.getElementById('s-ans').value,
+    cd:   document.getElementById('s-cd').value,
+  };
+
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('quiz-screen').style.display  = 'block';
+  resize();
+  runQuiz(cfg);
+});
+
+// 戻るボタン
+document.getElementById('back-btn').addEventListener('click', () => {
+  clearAll();
+  document.getElementById('cd-video').pause();
+  document.getElementById('quiz-screen').style.display  = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+});
+</script>
+</body>
+</html>
