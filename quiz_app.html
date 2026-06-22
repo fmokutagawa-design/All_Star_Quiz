@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4択クイズ</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #111;
+  font-family: 'HGP創英角ゴシックUB', 'Windows TV Pゴシック', 'Noto Sans JP', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== 設定画面 ===== */
+#setup-screen {
+  width: 100%;
+  max-width: 640px;
+  padding: 32px 24px;
+  color: #fff;
+}
+
+#setup-screen h1 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 24px;
+  color: #7ecef4;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #333;
+  padding-bottom: 12px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 6px;
+  letter-spacing: 0.05em;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: #7ecef4;
+}
+
+.form-group textarea {
+  resize: none;
+  height: 64px;
+}
+
+.choices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.choice-item label {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.choice-item input {
+  width: 100%;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+
+.votes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.vote-item label {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.vote-item input {
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #fff;
+  padding: 6px 8px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  text-align: center;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+#start-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #1a6fc4, #0d4a8f);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  transition: opacity 0.2s;
+}
+
+#start-btn:hover { opacity: 0.85; }
+
+/* ===== クイズ画面 ===== */
+#quiz-screen {
+  display: none;
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+/* 16:9アスペクト比で中央に配置 */
+#quiz-canvas {
+  position: absolute;
+  /* JSでサイズ計算 */
+  transform-origin: top left;
+}
+
+/* PPTXの座標系: 1333x750px相当 */
+.layer {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1333px;
+  height: 750px;
+}
+
+/* 背景 */
+#bg {
+  position: absolute;
+  width: 100%; height: 100%;
+  background-size: cover;
+  background-position: center;
+}
+
+/* 問題文パネル */
+#question-panel {
+  position: absolute;
+  left: 60px; top: 0px;
+  width: 180px; height: 530px;
+  /* image13 縦長パネル */
+}
+
+#question-text {
+  position: absolute;
+  left: 90px; top: 20px;
+  width: 94px; height: 680px;
+  color: #0F0E75;
+  font-size: 22px;
+  font-weight: bold;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  font-family: 'Windows TV Pゴシック', 'Noto Sans JP', sans-serif;
+  z-index: 10;
+}
+
+/* 企画名パネル */
+#project-panel {
+  position: absolute;
+  left: 60px; top: -8px;
+  width: 180px; height: 530px;
+}
+
+#project-text {
+  position: absolute;
+  left: 95px; top: 102px;
+  width: 106px; height: 383px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+/* 上部アンサーパネル */
+#top-panel {
+  position: absolute;
+  left: 234px; top: 77px;
+  width: 875px; height: 200px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.top-divider-v {
+  position: absolute;
+  left: 50%; top: 0;
+  width: 2px; height: 100%;
+  background: rgba(255,255,255,0.3);
+}
+
+.top-num {
+  position: absolute;
+  top: 8px;
+  width: 49px; height: 49px;
+}
+
+.top-num.n1 { left: 98px; }
+.top-num.n2 { left: 535px; }
+.top-num.n3 { left: 98px; }  /* 3行目は上と同じx */
+.top-num.n4 { left: 535px; }
+
+/* カウントダウン動画 */
+#countdown-wrapper {
+  position: absolute;
+  right: 16px; top: 590px;
+  width: 145px; height: 130px;
+  z-index: 20;
+}
+
+#countdown-video {
+  width: 100%; height: 100%;
+  object-fit: contain;
+}
+
+/* 選択肢エリア（下部2行） */
+/* 行1: ① ② */
+/* 行2: ③ ④ */
+.choice-panel {
+  position: absolute;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+/* 各選択肢の座標（px、1333x750基準） */
+/* ① x=234,y=504 w=431,h=96 */
+/* ② x=671,y=504 w=431,h=96 */
+/* ③ x=234,y=608 w=431,h=96 */
+/* ④ x=671,y=608 w=431,h=96 */
+
+#choice-1 { left: 234px; top: 504px; width: 431px; height: 96px; }
+#choice-2 { left: 671px; top: 504px; width: 431px; height: 96px; }
+#choice-3 { left: 234px; top: 608px; width: 431px; height: 96px; }
+#choice-4 { left: 671px; top: 608px; width: 431px; height: 96px; }
+
+.choice-bg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: fill;
+}
+
+/* 正解ハイライト背景（A/B交互点滅） */
+.correct-bg-a, .correct-bg-b {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  object-fit: fill;
+  opacity: 0;
+  transition: opacity 0.08s;
+}
+
+.num-circle {
+  position: absolute;
+  left: 8px; top: 50%;
+  transform: translateY(-50%);
+  width: 57px; height: 57px;
+  object-fit: contain;
+  z-index: 5;
+}
+
+.choice-text {
+  position: absolute;
+  left: 72px; top: 0;
+  width: 240px; height: 100%;
+  display: flex;
+  align-items: center;
+  color: #00005D;
+  font-size: 22px;
+  font-weight: bold;
+  font-family: 'HGP創英角ゴシックUB', 'Noto Sans JP', sans-serif;
+  line-height: 1.2;
+  z-index: 5;
+}
+
+/* 正解選択肢テキスト（正解色） */
+.correct-choice-text {
+  position: absolute;
+  left: 72px; top: 0;
+  width: 240px; height: 100%;
+  display: flex;
+  align-items: center;
+  color: #fff;
+  font-size: 22px;
+  font-weight: bold;
+  font-family: 'HGP創英角ゴシックUB', 'Noto Sans JP', sans-serif;
+  line-height: 1.2;
+  z-index: 6;
+  opacity: 0;
+}
+
+/* 投票数 */
+.vote-count {
+  position: absolute;
+  right: 48px; top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.vote-count-num {
+  position: absolute;
+  right: 48px; top: 50%;
+  transform: translateY(-50%);
+  width: 101px; height: 65px;
+  z-index: 7;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.vote-count-img {
+  width: 101px; height: 65px;
+  object-fit: fill;
+}
+
+.vote-count-text {
+  position: absolute;
+  top: 0; left: 0;
+  width: 101px; height: 65px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+  font-family: 'Windows TV Pゴシック', 'Noto Sans JP', sans-serif;
+}
+
+/* 正解マーク（○） */
+.correct-mark {
+  position: absolute;
+  right: 4px; top: 50%;
+  transform: translateY(-50%);
+  width: 57px; height: 57px;
+  object-fit: contain;
+  opacity: 0;
+  z-index: 8;
+}
+
+/* 戻るボタン */
+#back-btn {
+  position: fixed;
+  bottom: 12px; right: 12px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid #555;
+  color: #aaa;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 100;
+  font-family: inherit;
+}
+
+#back-btn:hover { color: #fff; }
+
+/* フェードトランジション */
+.fade-in { animation: fadeIn 0.3s ease forwards; }
+.fade-out { animation: fadeOut 0.3s ease forwards; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* 不正解暗転 */
+.choice-panel.wrong {
+  filter: brightness(0.35) saturate(0.3);
+  transition: filter 0.4s;
+}
+
+/* 正解フラッシュ */
+@keyframes correctPulse {
+  0%, 100% { filter: brightness(1.3) saturate(1.5); }
+  50% { filter: brightness(0.8) saturate(0.8); }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 設定画面 ===== -->
+<div id="setup-screen">
+  <h1>🎯 4択クイズ設定</h1>
+
+  <div class="form-group">
+    <label>企画名</label>
+    <input type="text" id="project-name" value="クイズ企画" maxlength="20">
+  </div>
+
+  <div class="form-group">
+    <label>問題文</label>
+    <textarea id="question-text-input" placeholder="問題文を入力してください">問題文は？</textarea>
+  </div>
+
+  <p style="font-size:12px;color:#888;margin-bottom:8px;">選択肢（①〜④）</p>
+  <div class="choices-grid">
+    <div class="choice-item">
+      <label>① 選択肢</label>
+      <input type="text" id="c1" value="選択肢①">
+    </div>
+    <div class="choice-item">
+      <label>② 選択肢</label>
+      <input type="text" id="c2" value="選択肢②">
+    </div>
+    <div class="choice-item">
+      <label>③ 選択肢</label>
+      <input type="text" id="c3" value="選択肢③">
+    </div>
+    <div class="choice-item">
+      <label>④ 選択肢</label>
+      <input type="text" id="c4" value="選択肢④">
+    </div>
+  </div>
+
+  <p style="font-size:12px;color:#888;margin-bottom:8px;">投票数（0で非表示）</p>
+  <div class="votes-grid">
+    <div class="vote-item"><label>①</label><input type="number" id="v1" value="0" min="0"></div>
+    <div class="vote-item"><label>②</label><input type="number" id="v2" value="0" min="0"></div>
+    <div class="vote-item"><label>③</label><input type="number" id="v3" value="0" min="0"></div>
+    <div class="vote-item"><label>④</label><input type="number" id="v4" value="0" min="0"></div>
+  </div>
+
+  <div class="settings-row">
+    <div class="form-group" style="margin-bottom:0">
+      <label>正解番号</label>
+      <select id="correct-num">
+        <option value="1">① 番</option>
+        <option value="2">② 番</option>
+        <option value="3">③ 番</option>
+        <option value="4">④ 番</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label>カウントダウン</label>
+      <select id="countdown-sec">
+        <option value="5">5秒</option>
+        <option value="10" selected>10秒</option>
+        <option value="15">15秒</option>
+        <option value="20">20秒</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px;"></div>
+  <button id="start-btn">▶ クイズ開始</button>
+  <p style="font-size:11px;color:#555;margin-top:10px;text-align:center;">
+    全画面表示（F11）+ 画面録画で動画化できます
+  </p>
+</div>
+
+<!-- ===== クイズ画面 ===== -->
+<div id="quiz-screen">
+  <div id="quiz-canvas">
+    <!-- 背景 -->
+    <div id="bg"></div>
+
+    <!-- 問題文パネル -->
+    <img id="question-panel-img" src="img13.png" style="position:absolute;left:60px;top:0;width:180px;height:530px;object-fit:fill;">
+    <div id="question-display" style="position:absolute;left:90px;top:20px;width:94px;height:500px;color:#0F0E75;font-size:20px;font-weight:bold;writing-mode:vertical-rl;display:flex;align-items:center;justify-content:flex-start;line-height:1.4;font-family:'Windows TV Pゴシック','Noto Sans JP',sans-serif;z-index:10;"></div>
+
+    <!-- 企画名 -->
+    <img src="img18.png" style="position:absolute;left:60px;top:-8px;width:180px;height:355px;object-fit:fill;z-index:9;">
+    <div id="project-display" style="position:absolute;left:95px;top:102px;width:106px;height:280px;color:#fff;font-size:13px;font-weight:bold;writing-mode:vertical-rl;display:flex;align-items:center;justify-content:center;z-index:10;"></div>
+
+    <!-- 上部パネル：問題画像エリア（空白） -->
+    <div style="position:absolute;left:234px;top:77px;width:875px;height:380px;background:rgba(255,255,255,0.92);border-radius:12px;z-index:2;">
+      <!-- ①②番号 -->
+      <img src="img4.png" style="position:absolute;left:8px;top:8px;width:49px;height:49px;object-fit:contain;" id="top-n1">
+      <img src="img3.png" style="position:absolute;left:446px;top:8px;width:49px;height:49px;object-fit:contain;" id="top-n2">
+      <!-- 縦線 -->
+      <div style="position:absolute;left:50%;top:0;width:2px;height:100%;background:rgba(180,180,200,0.4);"></div>
+    </div>
+
+    <!-- ③④番号（下半分） -->
+    <img src="img2.png" style="position:absolute;left:242px;top:295px;width:49px;height:49px;object-fit:contain;z-index:5;" id="top-n3">
+    <img src="img1.png" style="position:absolute;left:680px;top:295px;width:49px;height:49px;object-fit:contain;z-index:5;" id="top-n4">
+
+    <!-- カウントダウン動画 -->
+    <div id="countdown-wrapper" style="position:absolute;right:16px;top:590px;width:145px;height:130px;z-index:20;">
+      <video id="countdown-video" playsinline muted style="width:100%;height:100%;object-fit:contain;"></video>
+    </div>
+
+    <!-- 選択肢① -->
+    <div id="choice-1" class="choice-panel" style="left:234px;top:504px;width:431px;height:96px;">
+      <img class="choice-bg" src="img6.png">
+      <img class="correct-bg-a" src="img7.png" id="ca1">
+      <img class="correct-bg-b" src="img6.png" id="cb1" style="opacity:0;">
+      <img class="num-circle" src="img4.png">
+      <div class="choice-text" id="ct1"></div>
+      <div class="correct-choice-text" id="cct1"></div>
+      <div class="vote-count-num" id="vc1">
+        <img class="vote-count-img" src="img8.png">
+        <div class="vote-count-text" id="vt1">0</div>
+      </div>
+      <img class="correct-mark" src="img11.png" id="cm1">
+    </div>
+
+    <!-- 選択肢② -->
+    <div id="choice-2" class="choice-panel" style="left:671px;top:504px;width:431px;height:96px;">
+      <img class="choice-bg" src="img6.png">
+      <img class="correct-bg-a" src="img7.png" id="ca2">
+      <img class="correct-bg-b" src="img6.png" id="cb2" style="opacity:0;">
+      <img class="num-circle" src="img3.png">
+      <div class="choice-text" id="ct2"></div>
+      <div class="correct-choice-text" id="cct2"></div>
+      <div class="vote-count-num" id="vc2">
+        <img class="vote-count-img" src="img8.png">
+        <div class="vote-count-text" id="vt2">0</div>
+      </div>
+      <img class="correct-mark" src="img10.png" id="cm2">
+    </div>
+
+    <!-- 選択肢③ -->
+    <div id="choice-3" class="choice-panel" style="left:234px;top:608px;width:431px;height:96px;">
+      <img class="choice-bg" src="img6.png">
+      <img class="correct-bg-a" src="img7.png" id="ca3">
+      <img class="correct-bg-b" src="img6.png" id="cb3" style="opacity:0;">
+      <img class="num-circle" src="img2.png">
+      <div class="choice-text" id="ct3"></div>
+      <div class="correct-choice-text" id="cct3"></div>
+      <div class="vote-count-num" id="vc3">
+        <img class="vote-count-img" src="img8.png">
+        <div class="vote-count-text" id="vt3">0</div>
+      </div>
+      <img class="correct-mark" src="img9.png" id="cm3">
+    </div>
+
+    <!-- 選択肢④ -->
+    <div id="choice-4" class="choice-panel" style="left:671px;top:608px;width:431px;height:96px;">
+      <img class="choice-bg" src="img6.png">
+      <img class="correct-bg-a" src="img7.png" id="ca4">
+      <img class="correct-bg-b" src="img6.png" id="cb4" style="opacity:0;">
+      <img class="num-circle" src="img1.png">
+      <div class="choice-text" id="ct4"></div>
+      <div class="correct-choice-text" id="cct4"></div>
+      <div class="vote-count-num" id="vc4">
+        <img class="vote-count-img" src="img8.png">
+        <div class="vote-count-text" id="vt4">0</div>
+      </div>
+      <img class="correct-mark" src="img8.png" id="cm4">
+    </div>
+
+  </div><!-- /quiz-canvas -->
+
+  <button id="back-btn">← 設定に戻る</button>
+</div>
+
+<script>
+// ===== 設定値 =====
+let cfg = {};
+
+// ===== スケーリング =====
+const BASE_W = 1333, BASE_H = 750;
+
+function resize() {
+  const canvas = document.getElementById('quiz-canvas');
+  const scaleX = window.innerWidth / BASE_W;
+  const scaleY = window.innerHeight / BASE_H;
+  const scale = Math.min(scaleX, scaleY);
+  const w = BASE_W * scale;
+  const h = BASE_H * scale;
+  canvas.style.width = BASE_W + 'px';
+  canvas.style.height = BASE_H + 'px';
+  canvas.style.left = ((window.innerWidth - w) / 2) + 'px';
+  canvas.style.top = ((window.innerHeight - h) / 2) + 'px';
+  canvas.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', resize);
+
+// ===== カウントダウン動画マッピング =====
+// media5=24sec(20秒CD), media6=19sec(15秒CD), media7=14sec(10秒CD), media8=9sec(5秒CD)
+const CD_FILES = { 5: 'cd8.mp4', 10: 'cd7.mp4', 15: 'cd6.mp4', 20: 'cd5.mp4' };
+const CD_ACTUAL_MS = { 5: 9032, 10: 14047, 15: 19063, 20: 24055 };
+
+// ===== タイマー管理 =====
+let timers = [];
+function scheduleAt(ms, fn) {
+  timers.push(setTimeout(fn, ms));
+}
+function clearAll() {
+  timers.forEach(clearTimeout);
+  timers = [];
+}
+
+// ===== 点滅アニメ =====
+let blinkInterval = null;
+function startBlink(num) {
+  const a = document.getElementById(`ca${num}`);
+  const b = document.getElementById(`cb${num}`);
+  let phase = 0;
+  // A点滅パターン（元のXMLの300ms交互）
+  const cycle = () => {
+    if (phase % 2 === 0) {
+      a.style.opacity = '1';
+      b.style.opacity = '0';
+    } else {
+      a.style.opacity = '0';
+      b.style.opacity = '1';
+    }
+    phase++;
+  };
+  cycle();
+  blinkInterval = setInterval(cycle, 300);
+  // 6サイクル後にAで固定
+  setTimeout(() => {
+    clearInterval(blinkInterval);
+    a.style.opacity = '1';
+    b.style.opacity = '0';
+  }, 300 * 6 + 150);
+}
+
+// ===== メインシーケンス =====
+function runQuiz() {
+  clearAll();
+  if (blinkInterval) clearInterval(blinkInterval);
+
+  const correct = parseInt(cfg.correct);
+  const cdSec = parseInt(cfg.cdSec);
+  const cdMs = CD_ACTUAL_MS[cdSec];
+
+  // 各選択肢テキスト設定
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById(`ct${i}`).textContent = cfg[`c${i}`];
+    document.getElementById(`cct${i}`).textContent = cfg[`c${i}`];
+    const v = parseInt(cfg[`v${i}`]) || 0;
+    document.getElementById(`vt${i}`).textContent = v;
+    // 投票数の初期非表示
+    document.getElementById(`vc${i}`).style.opacity = '0';
+    document.getElementById(`cm${i}`).style.opacity = '0';
+    document.getElementById(`cct${i}`).style.opacity = '0';
+    document.getElementById(`ca${i}`).style.opacity = '0';
+    document.getElementById(`cb${i}`).style.opacity = '0';
+    document.getElementById(`choice-${i}`).classList.remove('wrong');
+    document.getElementById(`choice-${i}`).style.filter = '';
+  }
+
+  // カウントダウン動画再生
+  const video = document.getElementById('countdown-video');
+  video.src = CD_FILES[cdSec];
+  video.currentTime = 0;
+  video.play().catch(() => {});
+
+  // ---- カウントダウン終了後（cdMs ms後）----
+  scheduleAt(cdMs, () => {
+    // 1. 不正解選択肢を暗転
+    for (let i = 1; i <= 4; i++) {
+      if (i !== correct) {
+        document.getElementById(`choice-${i}`).classList.add('wrong');
+      }
+    }
+
+    // 2. 正解選択肢をハイライト＋点滅開始
+    const correctPanel = document.getElementById(`choice-${correct}`);
+    correctPanel.classList.remove('wrong');
+    startBlink(correct);
+
+    // 3. 正解テキストを白に切り替え
+    document.getElementById(`cct${correct}`).style.opacity = '1';
+    document.getElementById(`ct${correct}`).style.opacity = '0';
+
+    // 4. 正解マーク表示
+    scheduleAt(300, () => {
+      document.getElementById(`cm${correct}`).style.opacity = '1';
+    });
+
+    // 5. 投票数を表示（投票数>0の場合のみ）
+    scheduleAt(500, () => {
+      for (let i = 1; i <= 4; i++) {
+        const v = parseInt(cfg[`v${i}`]) || 0;
+        if (v > 0) {
+          document.getElementById(`vc${i}`).style.opacity = '1';
+        }
+      }
+    });
+  });
+}
+
+// ===== 開始ボタン =====
+document.getElementById('start-btn').addEventListener('click', () => {
+  cfg = {
+    project: document.getElementById('project-name').value,
+    question: document.getElementById('question-text-input').value,
+    c1: document.getElementById('c1').value,
+    c2: document.getElementById('c2').value,
+    c3: document.getElementById('c3').value,
+    c4: document.getElementById('c4').value,
+    v1: document.getElementById('v1').value,
+    v2: document.getElementById('v2').value,
+    v3: document.getElementById('v3').value,
+    v4: document.getElementById('v4').value,
+    correct: document.getElementById('correct-num').value,
+    cdSec: document.getElementById('countdown-sec').value,
+  };
+
+  document.getElementById('setup-screen').style.display = 'none';
+  const qs = document.getElementById('quiz-screen');
+  qs.style.display = 'block';
+
+  document.getElementById('question-display').textContent = cfg.question;
+  document.getElementById('project-display').textContent = cfg.project;
+
+  // 背景
+  document.getElementById('bg').style.backgroundImage = 'url(img5.png)';
+
+  resize();
+  runQuiz();
+});
+
+// ===== 戻るボタン =====
+document.getElementById('back-btn').addEventListener('click', () => {
+  clearAll();
+  if (blinkInterval) clearInterval(blinkInterval);
+  document.getElementById('countdown-video').pause();
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'block';
+});
+</script>
+</body>
+</html>
