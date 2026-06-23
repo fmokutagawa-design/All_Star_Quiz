@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>4択クイズ</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin:0; padding:0; box-sizing:border-box; }
 body { background:#111; font-family:'Noto Sans JP',sans-serif; min-height:100vh; overflow:hidden; }
 
 /* 設定画面 */
@@ -19,89 +19,62 @@ body { background:#111; font-family:'Noto Sans JP',sans-serif; min-height:100vh;
 .g2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
 .ci label { font-size:11px; color:#888; margin-bottom:3px; display:block; }
 .ci input { width:100%; background:#1a1a1a; border:1px solid #333; border-radius:5px; color:#fff; padding:6px 8px; font-size:13px; font-family:inherit; outline:none; }
-/* 画像アップロード */
-.ci-img { position:relative; }
-.ci-img label { font-size:11px; color:#888; margin-bottom:3px; display:block; }
-.ci-img .img-btn { width:100%; background:#1a2a1a; border:1px dashed #555; border-radius:5px; color:#8a8; padding:6px 8px; font-size:12px; font-family:inherit; cursor:pointer; text-align:center; display:block; }
-.ci-img input[type=file] { display:none; }
-.ci-img .img-preview { width:100%; height:40px; object-fit:cover; border-radius:4px; margin-top:3px; display:none; }
 .mode-btn { flex:1; padding:8px; background:#222; border:1px solid #444; border-radius:6px; color:#aaa; font-size:13px; font-family:inherit; cursor:pointer; transition:all .2s; }
 .mode-btn.active { background:#1a4a8f; border-color:#7ecef4; color:#fff; font-weight:bold; }
-#start-btn { width:100%; padding:12px; background:linear-gradient(135deg,#1a6fc4,#0d4a8f); border:none; border-radius:8px; color:#fff; font-size:15px; font-weight:bold; font-family:inherit; cursor:pointer; letter-spacing:.1em; margin-top:8px; }
+.img-btn { width:100%; background:#1a2a1a; border:1px dashed #555; border-radius:5px; color:#8a8; padding:6px 8px; font-size:12px; cursor:pointer; text-align:center; display:block; }
+.img-file { display:none; }
+.img-pre { width:100%; height:50px; object-fit:cover; border-radius:4px; margin-top:3px; display:none; }
+#start-btn { width:100%; padding:12px; background:linear-gradient(135deg,#1a6fc4,#0d4a8f); border:none; border-radius:8px; color:#fff; font-size:15px; font-weight:bold; font-family:inherit; cursor:pointer; margin-top:12px; }
 .hint { font-size:11px; color:#555; margin-top:8px; text-align:center; }
 
 /* クイズ画面 */
 #quiz-screen { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; overflow:hidden; }
 #qc { position:absolute; width:1333px; height:750px; transform-origin:top left; }
 
-/* 座標は全てPPTX実座標(px換算) */
 /* 背景 */
-#bg { position:absolute; top:0; left:0; width:1333px; height:750px; object-fit:cover; }
+#bg { position:absolute; top:0; left:0; width:1333px; height:750px; object-fit:fill; }
 
-/* 上部メインパネル（白い問題画像エリア） */
-/* PPTXの白パネルは x=60,y=185,w=1100,h=490 相当（背景画像に含まれる） */
-/* 画像を4分割で表示するエリア */
+/* 問題画像エリア（黒エリア実測値: x=317 y=95 w=699 h=393） */
 #img-area {
   position:absolute;
-  left:70px; top:190px;
-  width:1060px; height:380px;
-  border-radius:10px;
-  overflow:hidden;
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  grid-template-rows:1fr 1fr;
-  gap:2px;
-  background:#ddd;
-  z-index:3;
-}
-.img-cell {
-  background:#e8e8e8;
+  left:317px; top:95px; width:699px; height:393px;
+  z-index:3; overflow:hidden;
   display:flex; align-items:center; justify-content:center;
-  overflow:hidden;
-  position:relative;
+  border-radius:18px;
 }
-.img-cell img { width:100%; height:100%; object-fit:contain; display:none; }
-.img-cell .no-img { color:#bbb; font-size:13px; }
+#img-full { max-width:100%; max-height:100%; object-fit:contain; display:none; }
+#img-grid { display:none; width:100%; height:100%; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
+.img-cell { overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.img-cell img { max-width:100%; max-height:100%; object-fit:contain; display:none; }
 
-/* 番号丸（白パネル上） */
-.top-num { position:absolute; width:49px; height:49px; object-fit:contain; z-index:5; }
-#tn1 { left:77px;  top:197px; }
-#tn2 { left:607px; top:197px; }
-#tn3 { left:77px;  top:382px; }
-#tn4 { left:607px; top:382px; }
+/* 番号丸（4分割時のみ表示） */
+.top-num { position:absolute; width:49px; height:49px; object-fit:contain; z-index:5; display:none; }
+#tn1 { left:332px; top:97px; }
+#tn2 { left:680px; top:97px; }
+#tn3 { left:332px; top:295px; }
+#tn4 { left:680px; top:295px; }
 
-/* 右側Qパネル（企画名パネル） */
-/* x=1155 y=70 w=165 h=530 相当（背景画像の右紫パネル） */
-/* 問題文テキスト x=1142 y=232 w=94 h=333 */
+/* 問題文 x=1142,y=232,w=94,h=333 */
 #q-text {
-  position:absolute;
-  left:1142px; top:232px;
-  width:94px; height:333px;
-  z-index:10;
-  writing-mode:vertical-rl;
-  text-orientation:mixed;
-  color:#0F0E75;
-  font-size:18px;
-  font-weight:bold;
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;
-  line-height:1.5;
-  overflow:hidden;
+  position:absolute; left:1142px; top:232px; width:94px; height:333px;
+  z-index:10; writing-mode:vertical-rl; text-orientation:mixed;
+  color:#0F0E75; font-size:18px; font-weight:bold;
+  display:flex; align-items:center; justify-content:flex-start;
+  line-height:1.5; overflow:hidden;
 }
 
-/* カウントダウン動画 x=1116 y=587 w=145 h=130 */
+/* カウントダウン動画：白枠実測値に合わせる */
 #cd-wrap {
   position:absolute;
-  left:1116px; top:587px;
-  width:145px; height:130px;
+  left:1117px; top:588px; width:142px; height:127px;
   z-index:20;
+  border-radius:50%;
+  overflow:hidden;
 }
-#cd-video { width:100%; height:100%; object-fit:contain; }
+#cd-canvas { width:142px; height:152px; display:block; position:absolute; left:0; top:50%; transform:translateY(-50%); }
 
-/* 選択肢パネル */
-/* ① x=234,y=504 ② x=671,y=504 ③ x=234,y=608 ④ x=671,y=608 全部w=431,h=96 */
-.cp { position:absolute; width:431px; height:96px; overflow:hidden; z-index:5; transition:filter .5s; }
+/* 選択肢 */
+.cp { position:absolute; width:431px; height:96px; overflow:hidden; z-index:5; transition:filter .5s; border-radius:10px; }
 #cp1 { left:234px; top:504px; }
 #cp2 { left:671px; top:504px; }
 #cp3 { left:234px; top:608px; }
@@ -109,12 +82,18 @@ body { background:#111; font-family:'Noto Sans JP',sans-serif; min-height:100vh;
 .cp-bg,.cp-ba,.cp-bb { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; }
 .cp-ba,.cp-bb { opacity:0; }
 .cp-num { position:absolute; left:8px; top:50%; transform:translateY(-50%); width:57px; height:57px; object-fit:contain; z-index:6; }
-.cp-txt,.cp-txc { position:absolute; left:72px; top:0; width:270px; height:100%; display:flex; align-items:center; font-size:20px; font-weight:bold; line-height:1.2; z-index:6; }
-.cp-txt { color:#00005D; }
+.cp-txt,.cp-txc { position:absolute; left:72px; top:0; right:10px; height:100%; display:flex; align-items:center; font-size:20px; font-weight:bold; line-height:1.2; z-index:6; }
+.cp-txt { color:#fff; }
 .cp-txc { color:#fff; opacity:0; z-index:7; }
-.cp-mark { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:57px; height:57px; object-fit:contain; z-index:8; opacity:0; transition:opacity .3s; }
+.cp-mark { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:57px; height:57px; object-fit:contain; z-index:8; opacity:0; display:none; transition:opacity .3s; }
 
-#back-btn { position:fixed; bottom:10px; right:10px; background:rgba(0,0,0,.6); border:1px solid #555; color:#aaa; font-size:12px; padding:6px 12px; border-radius:4px; cursor:pointer; z-index:100; font-family:inherit; }
+/* 戻るボタン（小さく右下固定） */
+#back-btn {
+  position:fixed; bottom:6px; right:6px;
+  background:rgba(0,0,0,.5); border:1px solid #444;
+  color:#666; font-size:10px; padding:4px 8px;
+  border-radius:3px; cursor:pointer; z-index:200; font-family:inherit;
+}
 </style>
 </head>
 <body>
@@ -123,11 +102,10 @@ body { background:#111; font-family:'Noto Sans JP',sans-serif; min-height:100vh;
 <div id="setup-screen">
 <div id="si">
   <h1>🎯 4択クイズ設定</h1>
-
-  <div class="fg"><label>問題文（右パネルに縦書き表示）</label>
+  <div class="fg">
+    <label>問題文（右パネルに縦書き表示）</label>
     <textarea id="s-q" placeholder="問題文を入力">日本の首都は？</textarea>
   </div>
-
   <p style="font-size:11px;color:#888;margin-bottom:6px;">選択肢テキスト</p>
   <div class="g2">
     <div class="ci"><label>①</label><input type="text" id="s-c1" value="東京"></div>
@@ -135,67 +113,39 @@ body { background:#111; font-family:'Noto Sans JP',sans-serif; min-height:100vh;
     <div class="ci"><label>③</label><input type="text" id="s-c3" value="京都"></div>
     <div class="ci"><label>④</label><input type="text" id="s-c4" value="名古屋"></div>
   </div>
-
   <p style="font-size:11px;color:#888;margin-bottom:6px;">問題画像</p>
   <div style="display:flex;gap:8px;margin-bottom:10px;">
-    <button type="button" class="mode-btn active" id="mode-single" onclick="setImgMode('single')">全面1枚</button>
-    <button type="button" class="mode-btn" id="mode-quad" onclick="setImgMode('quad')">4分割</button>
+    <button type="button" class="mode-btn active" id="mode-single" onclick="setMode('single')">全面1枚</button>
+    <button type="button" class="mode-btn" id="mode-quad" onclick="setMode('quad')">4分割</button>
+    <button type="button" class="mode-btn" id="mode-none" onclick="setMode('none')">なし</button>
   </div>
-  <!-- 全面1枚モード -->
-  <div id="img-single">
-    <div class="ci-img"><label>画像（全面表示）</label>
-      <label class="img-btn" for="si0">📷 選択</label>
-      <input type="file" id="si0" accept="image/*">
-      <img id="sp0" class="img-preview" style="height:60px;">
-    </div>
+  <div id="img-single-wrap">
+    <label class="img-btn" for="si0">📷 画像を選択（全面）</label>
+    <input type="file" class="img-file" id="si0" accept="image/*">
+    <img id="sp0" class="img-pre" style="height:70px;">
   </div>
-  <!-- 4分割モード -->
-  <div id="img-quad" style="display:none;">
+  <div id="img-quad-wrap" style="display:none;">
     <div class="g2">
-      <div class="ci-img"><label>① 画像</label>
-        <label class="img-btn" for="si1">📷 選択</label>
-        <input type="file" id="si1" accept="image/*">
-        <img id="sp1" class="img-preview">
-      </div>
-      <div class="ci-img"><label>② 画像</label>
-        <label class="img-btn" for="si2">📷 選択</label>
-        <input type="file" id="si2" accept="image/*">
-        <img id="sp2" class="img-preview">
-      </div>
-      <div class="ci-img"><label>③ 画像</label>
-        <label class="img-btn" for="si3">📷 選択</label>
-        <input type="file" id="si3" accept="image/*">
-        <img id="sp3" class="img-preview">
-      </div>
-      <div class="ci-img"><label>④ 画像</label>
-        <label class="img-btn" for="si4">📷 選択</label>
-        <input type="file" id="si4" accept="image/*">
-        <img id="sp4" class="img-preview">
-      </div>
+      <div><label style="font-size:11px;color:#888;margin-bottom:3px;display:block;">① 画像</label>
+        <label class="img-btn" for="si1">📷 選択</label><input type="file" class="img-file" id="si1" accept="image/*"><img id="sp1" class="img-pre"></div>
+      <div><label style="font-size:11px;color:#888;margin-bottom:3px;display:block;">② 画像</label>
+        <label class="img-btn" for="si2">📷 選択</label><input type="file" class="img-file" id="si2" accept="image/*"><img id="sp2" class="img-pre"></div>
+      <div><label style="font-size:11px;color:#888;margin-bottom:3px;display:block;">③ 画像</label>
+        <label class="img-btn" for="si3">📷 選択</label><input type="file" class="img-file" id="si3" accept="image/*"><img id="sp3" class="img-pre"></div>
+      <div><label style="font-size:11px;color:#888;margin-bottom:3px;display:block;">④ 画像</label>
+        <label class="img-btn" for="si4">📷 選択</label><input type="file" class="img-file" id="si4" accept="image/*"><img id="sp4" class="img-pre"></div>
     </div>
   </div>
-
-  <div class="g2">
+  <div class="g2" style="margin-top:12px;">
     <div class="fg" style="margin:0"><label>正解番号</label>
-      <select id="s-ans">
-        <option value="1">① 番</option>
-        <option value="2">② 番</option>
-        <option value="3">③ 番</option>
-        <option value="4">④ 番</option>
-      </select>
+      <select id="s-ans"><option value="1">① 番</option><option value="2">② 番</option><option value="3">③ 番</option><option value="4">④ 番</option></select>
     </div>
     <div class="fg" style="margin:0"><label>カウントダウン</label>
-      <select id="s-cd">
-        <option value="5">5秒</option>
-        <option value="10" selected>10秒</option>
-        <option value="15">15秒</option>
-        <option value="20">20秒</option>
-      </select>
+      <select id="s-cd"><option value="5">5秒</option><option value="10" selected>10秒</option><option value="15">15秒</option><option value="20">20秒</option></select>
     </div>
   </div>
-
   <button id="start-btn">▶ クイズ開始</button>
-  <p class="hint">横向き全画面 + 画面録画 → 動画化</p>
+  <p class="hint">F11で全画面 → 画面録画で動画化</p>
 </div>
 </div>
 
@@ -204,222 +154,243 @@ body { background:#111; font-family:'Noto Sans JP',sans-serif; min-height:100vh;
 <div id="qc">
   <img id="bg" src="img5.png">
 
-  <!-- 全面1枚画像 -->
-  <img id="img-full" src="" style="position:absolute;left:70px;top:190px;width:1060px;height:380px;object-fit:contain;z-index:3;display:none;background:#eee;border-radius:10px;">
-
-  <!-- 画像4分割エリア -->
+  <!-- 問題画像エリア（黒枠内） -->
   <div id="img-area">
-    <div class="img-cell" id="ic1"><span class="no-img">①</span><img id="ii1"></div>
-    <div class="img-cell" id="ic2"><span class="no-img">②</span><img id="ii2"></div>
-    <div class="img-cell" id="ic3"><span class="no-img">③</span><img id="ii3"></div>
-    <div class="img-cell" id="ic4"><span class="no-img">④</span><img id="ii4"></div>
+    <img id="img-full">
+    <div id="img-grid">
+      <div class="img-cell"><img id="ii1"></div>
+      <div class="img-cell"><img id="ii2"></div>
+      <div class="img-cell"><img id="ii3"></div>
+      <div class="img-cell"><img id="ii4"></div>
+    </div>
   </div>
 
-  <!-- 番号丸 -->
+  <!-- 番号丸（4分割時のみ表示） -->
   <img class="top-num" id="tn1" src="img4.png">
   <img class="top-num" id="tn2" src="img3.png">
   <img class="top-num" id="tn3" src="img2.png">
   <img class="top-num" id="tn4" src="img1.png">
 
-  <!-- 問題文（右パネル縦書き） -->
+  <!-- 問題文 -->
   <div id="q-text"></div>
 
-  <!-- カウントダウン動画 -->
-  <div id="cd-wrap"><video id="cd-video" playsinline muted></video></div>
+  <!-- カウントダウン動画（Canvasでクロマキー処理） -->
+  <div id="cd-wrap">
+    <video id="cd-video" playsinline style="display:none;"></video>
+    <canvas id="cd-canvas"></canvas>
+  </div>
+
+  <!-- 正解SE -->
+  <audio id="se-correct" src="se2.m4a" preload="auto"></audio>
 
   <!-- 選択肢① -->
   <div class="cp" id="cp1">
-    <img class="cp-bg" src="img6.png">
-    <img class="cp-ba" id="ca1" src="img7.png">
-    <img class="cp-bb" id="cb1" src="img6.png">
+    <img class="cp-bg" src="img6.png"><img class="cp-ba" id="ca1" src="img7.png"><img class="cp-bb" id="cb1" src="img6.png">
     <img class="cp-num" src="img4.png">
-    <div class="cp-txt" id="ct1"></div>
-    <div class="cp-txc" id="cc1"></div>
-    <img class="cp-mark" id="cm1" src="img11.png">
+    <div class="cp-txt" id="ct1"></div><div class="cp-txc" id="cc1"></div>
   </div>
   <!-- 選択肢② -->
   <div class="cp" id="cp2">
-    <img class="cp-bg" src="img6.png">
-    <img class="cp-ba" id="ca2" src="img7.png">
-    <img class="cp-bb" id="cb2" src="img6.png">
+    <img class="cp-bg" src="img6.png"><img class="cp-ba" id="ca2" src="img7.png"><img class="cp-bb" id="cb2" src="img6.png">
     <img class="cp-num" src="img3.png">
-    <div class="cp-txt" id="ct2"></div>
-    <div class="cp-txc" id="cc2"></div>
-    <img class="cp-mark" id="cm2" src="img10.png">
+    <div class="cp-txt" id="ct2"></div><div class="cp-txc" id="cc2"></div>
   </div>
   <!-- 選択肢③ -->
   <div class="cp" id="cp3">
-    <img class="cp-bg" src="img6.png">
-    <img class="cp-ba" id="ca3" src="img7.png">
-    <img class="cp-bb" id="cb3" src="img6.png">
+    <img class="cp-bg" src="img6.png"><img class="cp-ba" id="ca3" src="img7.png"><img class="cp-bb" id="cb3" src="img6.png">
     <img class="cp-num" src="img2.png">
-    <div class="cp-txt" id="ct3"></div>
-    <div class="cp-txc" id="cc3"></div>
-    <img class="cp-mark" id="cm3" src="img9.png">
+    <div class="cp-txt" id="ct3"></div><div class="cp-txc" id="cc3"></div>
   </div>
   <!-- 選択肢④ -->
   <div class="cp" id="cp4">
-    <img class="cp-bg" src="img6.png">
-    <img class="cp-ba" id="ca4" src="img7.png">
-    <img class="cp-bb" id="cb4" src="img6.png">
+    <img class="cp-bg" src="img6.png"><img class="cp-ba" id="ca4" src="img7.png"><img class="cp-bb" id="cb4" src="img6.png">
     <img class="cp-num" src="img1.png">
-    <div class="cp-txt" id="ct4"></div>
-    <div class="cp-txc" id="cc4"></div>
-    <img class="cp-mark" id="cm4" src="img8.png">
+    <div class="cp-txt" id="ct4"></div><div class="cp-txc" id="cc4"></div>
   </div>
-
 </div>
-<button id="back-btn">← 設定に戻る</button>
+<button id="back-btn" onclick="goBack()">設定へ</button>
 </div>
 
 <script>
+// カウントダウン動画の実尺(ms)
 const CD = {
   5:  {file:'cd8.mp4', ms:9032},
   10: {file:'cd7.mp4', ms:14047},
   15: {file:'cd6.mp4', ms:19063},
   20: {file:'cd5.mp4', ms:24055},
 };
+let timers=[], blinkTid=null, currentMode='single';
+const sched=(ms,fn)=>{ const id=setTimeout(fn,ms); timers.push(id); return id; };
+function clearAll(){ timers.forEach(clearTimeout); timers=[]; if(blinkTid){clearInterval(blinkTid);blinkTid=null;} }
 
-let timers=[], blinkTid=null;
-const sched=(ms,fn)=>timers.push(setTimeout(fn,ms));
-function clearAll(){timers.forEach(clearTimeout);timers=[];if(blinkTid){clearInterval(blinkTid);blinkTid=null;}}
-
+// スケーリング
 function resize(){
   const qc=document.getElementById('qc');
   const s=Math.min(window.innerWidth/1333, window.innerHeight/750);
-  const ox=(window.innerWidth-1333*s)/2;
-  const oy=(window.innerHeight-750*s)/2;
-  qc.style.transform=`translate(${ox}px,${oy}px) scale(${s})`;
+  qc.style.transform=`translate(${(window.innerWidth-1333*s)/2}px,${(window.innerHeight-750*s)/2}px) scale(${s})`;
 }
 window.addEventListener('resize',resize);
 
+// 画像モード切替
+function setMode(mode){
+  currentMode=mode;
+  document.getElementById('img-single-wrap').style.display=mode==='single'?'block':'none';
+  document.getElementById('img-quad-wrap').style.display=mode==='quad'?'block':'none';
+  ['single','quad','none'].forEach(m=>document.getElementById('mode-'+m).classList.toggle('active',m===mode));
+}
+
+// ファイルプレビュー
+['0','1','2','3','4'].forEach(i=>{
+  const el=document.getElementById('si'+i);
+  if(!el) return;
+  el.addEventListener('change',function(){
+    if(!this.files[0]) return;
+    const sp=document.getElementById('sp'+i);
+    if(sp){sp.src=URL.createObjectURL(this.files[0]);sp.style.display='block';}
+    const lbl=document.querySelector('label[for="si'+i+'"]');
+    if(lbl) lbl.textContent='✓ 選択済';
+  });
+});
+
+// 点滅
 function blink(n){
   const a=document.getElementById('ca'+n), b=document.getElementById('cb'+n);
   let ph=0;
-  const tick=()=>{
-    if(ph%2===0){a.style.opacity='1';b.style.opacity='0';}
-    else{a.style.opacity='0';b.style.opacity='1';}
-    ph++;
-  };
+  const tick=()=>{ a.style.opacity=ph%2===0?'1':'0'; b.style.opacity=ph%2===0?'0':'1'; ph++; };
   tick();
   blinkTid=setInterval(tick,300);
-  setTimeout(()=>{clearInterval(blinkTid);blinkTid=null;a.style.opacity='1';b.style.opacity='0';},300*6+150);
+  setTimeout(()=>{ clearInterval(blinkTid); blinkTid=null; a.style.opacity='1'; b.style.opacity='0'; }, 300*6+150);
 }
 
+// リセット
 function resetUI(){
   for(let i=1;i<=4;i++){
     document.getElementById('cp'+i).style.filter='';
-    ['ca','cb','cm'].forEach(p=>document.getElementById(p+i).style.opacity='0');
+    ['ca','cb'].forEach(p=>document.getElementById(p+i).style.opacity='0');
+
     document.getElementById('cc'+i).style.opacity='0';
     document.getElementById('ct'+i).style.opacity='1';
   }
+  // 画像エリアリセット
+  document.getElementById('img-full').style.display='none';
+  document.getElementById('img-full').src='';
+  document.getElementById('img-grid').style.display='none';
+  for(let i=1;i<=4;i++){ const img=document.getElementById('ii'+i); img.src=''; img.style.display='none'; }
+  // 番号丸非表示
+  for(let i=1;i<=4;i++) document.getElementById('tn'+i).style.display='none';
 }
-
-let imgMode = 'single';
-function setImgMode(mode) {
-  imgMode = mode;
-  document.getElementById('img-single').style.display = mode==='single' ? 'block' : 'none';
-  document.getElementById('img-quad').style.display   = mode==='quad'   ? 'block' : 'none';
-  document.getElementById('mode-single').classList.toggle('active', mode==='single');
-  document.getElementById('mode-quad').classList.toggle('active', mode==='quad');
-}
-
-// si0（全面画像）プレビュー
-document.getElementById('si0').addEventListener('change', function(){
-  if(!this.files[0]) return;
-  const url = URL.createObjectURL(this.files[0]);
-  const sp = document.getElementById('sp0');
-  sp.src = url; sp.style.display = 'block';
-  document.querySelector('label[for="si0"]').textContent = '✓ 選択済';
-});
-
-// 画像プレビュー設定
-[1,2,3,4].forEach(i=>{
-  document.getElementById('si'+i).addEventListener('change',function(){
-    if(!this.files[0]) return;
-    const url=URL.createObjectURL(this.files[0]);
-    const sp=document.getElementById('sp'+i);
-    sp.src=url; sp.style.display='block';
-    document.querySelector('#si'+i).closest('.ci-img').querySelector('.img-btn').textContent='✓ 選択済';
-  });
-});
 
 function runQuiz(cfg){
   clearAll(); resetUI();
   const correct=parseInt(cfg.ans), cdSec=parseInt(cfg.cd), cdMs=CD[cdSec].ms;
 
+  // テキスト
   document.getElementById('q-text').textContent=cfg.q;
   for(let i=1;i<=4;i++){
     document.getElementById('ct'+i).textContent=cfg['c'+i];
     document.getElementById('cc'+i).textContent=cfg['c'+i];
   }
 
-  // 画像モード切り替え
-  const fullImg = document.getElementById('img-full');
-  const imgArea = document.getElementById('img-area');
-  if(cfg.imgMode === 'single' && cfg.img0) {
-    fullImg.src = cfg.img0; fullImg.style.display = 'block';
-    imgArea.style.display = 'none';
-  } else if(cfg.imgMode === 'quad') {
-    fullImg.style.display = 'none';
-    imgArea.style.display = 'grid';
+  // 画像セット
+  if(cfg.imgMode==='single' && cfg.img0){
+    const fi=document.getElementById('img-full');
+    fi.src=cfg.img0; fi.style.display='block';
+    // 番号丸は非表示のまま
+  } else if(cfg.imgMode==='quad'){
+    document.getElementById('img-grid').style.display='grid';
+    // 番号丸を表示
+    for(let i=1;i<=4;i++) document.getElementById('tn'+i).style.display='block';
     for(let i=1;i<=4;i++){
-      const src=cfg['img'+i];
-      const img=document.getElementById('ii'+i);
-      const noimg=document.querySelector('#ic'+i+' .no-img');
-      if(src){ img.src=src; img.style.display='block'; if(noimg) noimg.style.display='none'; }
-      else   { img.style.display='none'; if(noimg) noimg.style.display='block'; }
+      if(cfg['img'+i]){
+        const img=document.getElementById('ii'+i);
+        img.src=cfg['img'+i]; img.style.display='block';
+      }
     }
-  } else {
-    fullImg.style.display = 'none';
-    imgArea.style.display = 'grid';
   }
+  // modeがnoneの場合は何も表示しない
 
-  // 動画
+  // カウントダウン動画（音声あり）
   const vid=document.getElementById('cd-video');
-  vid.src=CD[cdSec].file; vid.load(); vid.play().catch(()=>{});
+  vid.src=CD[cdSec].file; vid.muted=false; vid.load();
+  vid.play().catch(()=>{ vid.muted=true; vid.play().catch(()=>{}); });
+  // Canvasクロマキー処理
+  const canvas = document.getElementById('cd-canvas');
+  const ctx = canvas.getContext('2d', {willReadFrequently: true});
+  let raf = null;
+  function stopRaf() { if(raf){ cancelAnimationFrame(raf); raf=null; } }
+  function drawFrame() {
+    if(!vid || vid.readyState < 2) { raf = requestAnimationFrame(drawFrame); return; }
+    const vw = vid.videoWidth, vh = vid.videoHeight;
+    if(vw === 0 || vh === 0) { raf = requestAnimationFrame(drawFrame); return; }
+    // 出力サイズを固定正方形200x200で統一
+    const OUT = 200;
+    const size = vh; // 1080
+    const sx = (vw - size) / 2; // 420
+    if(canvas.width !== OUT) canvas.width = OUT;
+    if(canvas.height !== OUT) canvas.height = OUT;
+    ctx.clearRect(0, 0, OUT, OUT);
+    ctx.drawImage(vid, sx, 0, size, size, 0, 0, OUT, OUT);
+    try {
+      const imageData = ctx.getImageData(0, 0, OUT, OUT);
+      const d = imageData.data;
+      for (let p = 0; p < d.length; p += 4) {
+        const r = d[p], g = d[p+1], b = d[p+2];
+        // 青背景を透明化（青が赤・緑より明確に強い）
+        if (b > 90 && b > r * 1.5 && b > g * 1.5) d[p+3] = 0;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    } catch(e) {}
+    if(!vid.paused && !vid.ended) raf = requestAnimationFrame(drawFrame);
+  }
+  vid.addEventListener('play', () => { stopRaf(); raf = requestAnimationFrame(drawFrame); });
+  vid.addEventListener('pause', stopRaf);
+  vid.addEventListener('ended', stopRaf);
 
-  // カウントダウン後
-  sched(cdMs,()=>{
+
+  // 動画終了後に正解演出（タイマーで制御）
+  sched(cdMs, ()=>{
+    // 不正解暗転
     for(let i=1;i<=4;i++){
       if(i!==correct) document.getElementById('cp'+i).style.filter='brightness(0.3) saturate(0.2)';
     }
+    // 正解点滅
     blink(correct);
+    // 正解テキスト切替
     document.getElementById('ct'+correct).style.opacity='0';
     document.getElementById('cc'+correct).style.opacity='1';
-    sched(300,()=>document.getElementById('cm'+correct).style.opacity='1');
+    // 300ms後に正解マーク＋SE
+    sched(300, ()=>{
+
+      const se=document.getElementById('se-correct');
+      se.currentTime=0; se.play().catch(()=>{});
+    });
   });
 }
 
 document.getElementById('start-btn').addEventListener('click',()=>{
-  const f0 = document.getElementById('si0').files[0];
-  const imgs = { imgMode, img0: f0 ? URL.createObjectURL(f0) : null };
-  [1,2,3,4].forEach(i=>{
+  const f0=document.getElementById('si0').files[0];
+  const imgs={imgMode:currentMode, img0:f0?URL.createObjectURL(f0):null};
+  for(let i=1;i<=4;i++){
     const f=document.getElementById('si'+i).files[0];
     imgs['img'+i]=f?URL.createObjectURL(f):null;
-  });
+  }
   const cfg={
-    q: document.getElementById('s-q').value,
-    c1:document.getElementById('s-c1').value,
-    c2:document.getElementById('s-c2').value,
-    c3:document.getElementById('s-c3').value,
-    c4:document.getElementById('s-c4').value,
-    ans:document.getElementById('s-ans').value,
-    cd: document.getElementById('s-cd').value,
+    q:   document.getElementById('s-q').value,
+    c1:  document.getElementById('s-c1').value, c2: document.getElementById('s-c2').value,
+    c3:  document.getElementById('s-c3').value, c4: document.getElementById('s-c4').value,
+    ans: document.getElementById('s-ans').value, cd: document.getElementById('s-cd').value,
     ...imgs
   };
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('quiz-screen').style.display='block';
-  resize();
-  runQuiz(cfg);
+  resize(); runQuiz(cfg);
 });
 
-document.getElementById('back-btn').addEventListener('click',()=>{
-  clearAll();
-  document.getElementById('cd-video').pause();
+function goBack(){
+  clearAll(); document.getElementById('cd-video').pause();
   document.getElementById('quiz-screen').style.display='none';
   document.getElementById('setup-screen').style.display='flex';
-});
+}
 </script>
 </body>
 </html>
